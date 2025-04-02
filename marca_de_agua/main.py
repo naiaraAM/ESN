@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 def get_watermark_path():
     """ Obtiene la ruta de la marca de agua dependiendo del entorno """
     base_path = sys._MEIPASS if getattr(sys, 'frozen', False) else os.path.dirname(__file__)
-    return os.path.join(base_path, "marca_de_agua.png")
+    return os.path.join(base_path, "watermark.png")
 
 
 def load_watermark():
