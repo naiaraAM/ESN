@@ -1,3 +1,11 @@
+# Code editor directories
+.idea/
+.vscode/
+
+# Exe directories
+marca_de_agua/build/
+marca_de_agua/dist/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
