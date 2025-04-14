@@ -89,7 +89,7 @@ def process_images(folder_selected, progress_window, progress_label, progress_va
 
     def update_progress(i):
         progress_var.set((i + 1) / total_files * 100)
-        progress_label.config(text=f"Procesando {i + 1}/{total_files} imágenes")
+        progress_label.configure(text=f"Procesando {i + 1}/{total_files} imágenes")
         progress_window.after(100)
 
     def worker(i, file):
