@@ -2,6 +2,8 @@
 .idea/
 .vscode/
 
+pruebas/
+
 # Exe directories
 marca_de_agua/build/
 marca_de_agua/dist/
