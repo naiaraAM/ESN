@@ -47,6 +47,10 @@ def process_image(file_path, output_folder, watermark_pos, watermark):
                 position = ((image.width - watermark_resized.width) // 2, 0)
             elif watermark_pos == "top_right":
                 position = (image.width - watermark_resized.width, int(image.height * 0.05))
+            elif watermark_pos == "center_left":
+                 position = (0, (image.height - watermark_resized.height) // 2)
+            elif watermark_pos == "center_right":   
+                    position = (image.width - watermark_resized.width, (image.height - watermark_resized.height) // 2)
             elif watermark_pos == "bottom_left":
                 position = (0, image.height - watermark_resized.height - int(image.height * 0.05))
             elif watermark_pos == "bottom_center":

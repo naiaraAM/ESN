@@ -1,6 +1,6 @@
 ## How to generate the .exe file
-```
-pyinstaller --onefile --windowed --add-data "watermark.png;." --icon=app_icon.ico main.py
+```bash
+pyinstaller --clean --onefile --windowed --add-data "img\\watermark.png;img" --add-data "img\\icon.ico;img" --icon=img/icon.ico main.py
 ```
 
 The .exe file will be in /dist directory.

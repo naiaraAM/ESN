@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import os
+import sys
 import threading
 import customtkinter as ctk  # type: ignore
 from tkinter import filedialog, messagebox
-from PIL import Image  # type: ignore
 
 from modules.processing import process
 from modules.converter import to_jpg  # Se asume que esta función ya existe en el proyecto
-from modules.watermark import load_watermark
+from modules.watermark import load_watermark, select_custom_watermark
 
 # Paleta de colores
 colors = {
@@ -17,6 +17,14 @@ colors = {
     'orange': '#F47B20',
     'dark_blue': '#2E3192'
 }
+
+def get_resource_path(relative_path):
+    """Devuelve la ruta absoluta al recurso, compatible con PyInstaller."""
+    try:
+        base_path = sys._MEIPASS  # Cuando está congelado (PyInstaller)
+    except AttributeError:
+        base_path = os.path.abspath(".")  # Cuando se ejecuta desde el código fuente
+    return os.path.join(base_path, relative_path)
 
 def select_folder(root, main_frame, watermark_container):
     """Permite seleccionar la carpeta a procesar y luego la posición del watermark."""
@@ -76,6 +84,8 @@ def select_folder(root, main_frame, watermark_container):
         os.makedirs(output_folder, exist_ok=True)  # Asegura que la carpeta existe
         os.startfile(output_folder)
 
+        watermark_container[0] = load_watermark()  # 
+
         # Volver a la pantalla de inicio
         init_main_screen(root, main_frame, watermark_container)
 
@@ -84,9 +94,11 @@ def select_folder(root, main_frame, watermark_container):
         ("↖", "top_left", (0, 0)),
         ("↑", "top_center", (0, 1)),
         ("↗", "top_right", (0, 2)),
-        ("↙", "bottom_left", (1, 0)),
-        ("↓", "bottom_center", (1, 1)),
-        ("↘", "bottom_right", (1, 2)),
+        ("←", "center_left", (1, 0)),
+        ("→", "center_right", (1, 2)),
+        ("↙", "bottom_left", (2, 0)),
+        ("↓", "bottom_center", (2, 1)),
+        ("↘", "bottom_right", (2, 2)),
     ]
 
     # Creación de botones para seleccionar la posición
@@ -100,7 +112,7 @@ def select_folder(root, main_frame, watermark_container):
                                hover_color=colors['dark_blue'],
                                 font=("Lato", 11),
                                command=lambda p=pos: on_select_position(p))
-        button.grid(row=row, column=col, padx=10, pady=30, sticky="ew")
+        button.grid(row=row, column=col, padx=10, pady=20, sticky="ew")
 
     # Configurar la distribución de columnas del grid
     for col in range(3):
@@ -178,12 +190,12 @@ def select_single_image(root, main_frame, watermark_container):
         ("↖", "top_left", (0, 0)),
         ("↑", "top_center", (0, 1)),
         ("↗", "top_right", (0, 2)),
-        ("↙", "bottom_left", (1, 0)),
-        ("↓", "bottom_center", (1, 1)),
-        ("↘", "bottom_right", (1, 2)),
+        ("←", "center_left", (1, 0)),
+        ("→", "center_right", (1, 2)),
+        ("↙", "bottom_left", (2, 0)),
+        ("↓", "bottom_center", (2, 1)),
+        ("↘", "bottom_right", (2, 2)),
     ]
-
-    # TODO: Añadir label que ponga posicion
 
     # Creación de botones para seleccionar la posición
     for text, pos, coords in options:
@@ -196,7 +208,7 @@ def select_single_image(root, main_frame, watermark_container):
                                hover_color=colors['dark_blue'],
                                 font=("Lato", 11),
                                command=lambda p=pos: on_select_position(p))
-        button.grid(row=row, column=col, padx=10, pady=30, sticky="ew")
+        button.grid(row=row, column=col, padx=10, pady=20, sticky="ew")
 
     # Configurar la distribución de columnas del grid
     for col in range(3):
@@ -213,18 +225,18 @@ def init_main_screen(root, main_frame, watermark_container):
                                text_color=colors['dark_blue'])
     title_label.pack(pady=(0, 25))
 
-    select_folder = ctk.CTkButton(main_frame,
-                                  text="Seleccionar Carpeta",
+    select_button = ctk.CTkButton(main_frame,
+                                  text="Seleccionar carpeta",
                                   corner_radius=5,
                                   fg_color=colors['cyan'],
                                   text_color="white",
                                   hover_color=colors['dark_blue'],
                                   font=("Lato", 12),
                                   command=lambda: select_folder(root, main_frame, watermark_container))
-    select_folder.pack(ipadx=10, pady=5)
+    select_button.pack(ipadx=10, pady=5)
 
     single_image_button = ctk.CTkButton(main_frame,
-                                    text="Seleccionar imgen única",
+                                    text="Seleccionar imagen única",
                                     corner_radius=5,
                                     fg_color=colors['cyan'],
                                     text_color="white",
@@ -241,7 +253,7 @@ def init_main_screen(root, main_frame, watermark_container):
                                      text_color="white",
                                      hover_color=colors['dark_blue'],
                                      font=("Lato", 12),
-                                     command=lambda: select_custom_watermark(root, watermark_container))
+                                     command=lambda: select_custom_watermark(watermark_container))
     watermark_button.pack(ipadx=10, pady=5)
 
     footer_label = ctk.CTkLabel(main_frame,
@@ -250,47 +262,32 @@ def init_main_screen(root, main_frame, watermark_container):
                                 text_color=colors['dark_blue'])
     footer_label.pack(side="bottom", pady=(20, 0))
 
-def select_custom_watermark(root, watermark_container):
-    """Permite seleccionar una imagen para usarla como watermark personalizada."""
-    custom_watermark_file = filedialog.askopenfilename(
-        filetypes=[("Archivos de Imagen", "*.png *.jpg *.jpeg *.bmp *.tiff")]
-    )
-    if not custom_watermark_file:
-        return
-
-    try:
-        watermark_image = Image.open(custom_watermark_file).convert("RGBA")
-        new_data = [
-            (r, g, b, 200) if (r, g, b) == (255, 255, 255) else (r, g, b, a)
-            for r, g, b, a in watermark_image.getdata()
-        ]
-        watermark_image.putdata(new_data)
-        watermark_container[0] = watermark_image  # Se actualiza la marca de agua
-        messagebox.showinfo("Marca de Agua Actualizada",
-                            "La marca de agua personalizada se ha cargado correctamente.")
-    except Exception as e:
-        messagebox.showerror("Error", f"No se pudo cargar la marca de agua: {e}")
-
 def create_main_window():
-    """Crea y configura la ventana principal utilizando CustomTkinter."""
     ctk.set_appearance_mode("Light")  # o "Dark"
-    ctk.set_default_color_theme("blue")  # Se puede definir otra paleta si se desea
-
+    ctk.set_default_color_theme("blue")
+    
     root = ctk.CTk()
     root.title("Marca de Agua")
-    root.geometry("420x300")
-    icon_path = os.path.join(os.path.dirname(__file__), "../img/icon.ico")
+    
+    width = 420
+    height = 300
+    # Calcular la posición centrada
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    x = (screen_width - width) // 2
+    y = (screen_height - height) // 2
+    root.geometry(f"{width}x{height}+{x}+{y}")
+    
+    icon_path = get_resource_path("img/icon.ico")
     if os.path.exists(icon_path):
         root.iconbitmap(icon_path)
     root.resizable(False, False)
 
     # Se crea el marco principal con esquinas redondeadas
-    main_frame = ctk.CTkFrame(root, 
-                              corner_radius=5, 
-                              fg_color="white"
-                              )
+    main_frame = ctk.CTkFrame(root, corner_radius=5, fg_color="white")
     main_frame.pack(expand=True, fill="both", padx=30, pady=30)
-    title_label = ctk.CTkLabel(main_frame, text="Añadir watermark",
+    title_label = ctk.CTkLabel(main_frame,
+                               text="Añadir watermark",
                                font=("Lato", 16, "bold"),
                                text_color=colors['dark_blue'])
     title_label.pack(pady=(0, 25))
@@ -299,7 +296,7 @@ def create_main_window():
     watermark_container = [load_watermark()]
 
     select_button = ctk.CTkButton(main_frame,
-                                  text="Seleccionar Carpeta",
+                                  text="Seleccionar carpeta",
                                   corner_radius=5,
                                   fg_color=colors['cyan'],
                                   text_color="white",
@@ -309,14 +306,13 @@ def create_main_window():
     select_button.pack(ipadx=10, pady=5)
 
     single_image_button = ctk.CTkButton(main_frame,
-                                    text="Seleccionar imgen única",
-                                    corner_radius=5,
-                                    fg_color=colors['cyan'],
-                                    text_color="white",
-                                    hover_color=colors['dark_blue'],
-                                    font=("Lato", 11),
-                                    command=lambda: select_single_image(root, main_frame, watermark_container))
-
+                                        text="Seleccionar imagen única",
+                                        corner_radius=5,
+                                        fg_color=colors['cyan'],
+                                        text_color="white",
+                                        hover_color=colors['dark_blue'],
+                                        font=("Lato", 11),
+                                        command=lambda: select_single_image(root, main_frame, watermark_container))
     single_image_button.pack(ipadx=10, pady=5)
 
     watermark_button = ctk.CTkButton(main_frame,
@@ -326,10 +322,9 @@ def create_main_window():
                                      text_color="white",
                                      hover_color=colors['dark_blue'],
                                      font=("Lato", 11),
-                                     command=lambda: select_custom_watermark(root, watermark_container))
+                                     command=lambda: select_custom_watermark(watermark_container))
     watermark_button.pack(ipadx=10, pady=5)
 
-    # Footer
     footer_label = ctk.CTkLabel(main_frame,
                                 text="© ESN Santander",
                                 font=("Kelson Sans", 12),
