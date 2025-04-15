@@ -30,7 +30,6 @@ def process_image(file_path, jpg_folder):
                 os.path.splitext(os.path.join(jpg_folder, os.path.basename(file_path)))[0]
                 + ".jpg"
             )
-
             if exif_bytes:
                 image.convert("RGB").save(output_path, quality=100, exif=exif_bytes)
             else:
@@ -38,12 +37,18 @@ def process_image(file_path, jpg_folder):
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
 
-def to_jpg(folder_path):
-    jpg_folder = os.path.join(folder_path, "jpg")
-    os.makedirs(jpg_folder, exist_ok=True)  # Crear la carpeta 'jpg' si no existe
+def to_jpg(input_path, type="directory"):
+    if type == "file":
+        # a single file
+        jpg_folder = os.path.join(os.path.dirname(input_path), "jpg")
+        os.makedirs(jpg_folder, exist_ok=True)
+        process_image(input_path, jpg_folder)
+    elif type == "directory":
+        jpg_folder = os.path.join(input_path, "jpg")
+        os.makedirs(jpg_folder, exist_ok=True)  # Crear la carpeta 'jpg' si no existe
 
-    files = [os.path.join(folder_path, filename) for filename in os.listdir(folder_path)
-             if os.path.isfile(os.path.join(folder_path, filename)) and filename.lower().endswith(('png', 'jpg', 'jpeg', 'tiff', 'bmp', 'heic'))]
+        files = [os.path.join(input_path, filename) for filename in os.listdir(input_path)
+                if os.path.isfile(os.path.join(input_path, filename)) and filename.lower().endswith(('png', 'jpg', 'jpeg', 'tiff', 'bmp', 'heic'))]
 
-    with ThreadPoolExecutor() as executor:
-        executor.map(lambda file_path: process_image(file_path, jpg_folder), files)
+        with ThreadPoolExecutor() as executor:
+            executor.map(lambda file_path: process_image(file_path, jpg_folder), files)

@@ -1,6 +1,11 @@
 import os
-from PIL import Image  # type: ignore
 import piexif  # type: ignore
+import shutil
+
+from PIL import Image  # type: ignore
+from tkinter import messagebox
+from concurrent.futures import ThreadPoolExecutor
+
 
 def clean_filename(filename):
     return "".join(c for c in filename if c.isalnum() or c in "._- ")
@@ -70,20 +75,31 @@ def process_image(file_path, output_folder, watermark_pos, watermark):
     except Exception as e:
         print(f"Error procesando {file_path}: {e}")
 
-def process_images(folder_selected, progress_window, progress_label, progress_var, watermark_pos, to_jpg, watermark):
-    """Procesa todas las imágenes en paralelo usando la posición de watermark especificada."""
-    # Convertir imágenes a JPG (se asume que la función to_jpg ya está definida)
-    to_jpg(folder_selected)
-    jpg_folder = os.path.join(folder_selected, "jpg")
-    files = [os.path.join(jpg_folder, f) for f in os.listdir(jpg_folder)
-             if f.lower().endswith(('png', 'jpg', 'jpeg', 'tiff', 'bmp'))]
+def process(folder_selected, progress_window, progress_label, progress_var, watermark_pos, to_jpg, watermark, type="directory"):
+    
+    if type == "file":
+        # folder_selected es la ruta del archivo
+        to_jpg(folder_selected, type)
+        # Usar el directorio del archivo para construir la carpeta jpg
+        jpg_folder = os.path.join(os.path.dirname(folder_selected), "jpg")
+        # Se asume que el archivo convertido se conserva el mismo nombre
+        file_converted = os.path.join(jpg_folder, os.path.basename(folder_selected))
+        files = [file_converted]
+        # La carpeta de salida estará en el mismo directorio que el archivo original
+        output_folder = os.path.join(os.path.dirname(folder_selected), "watermark")
+    else:
+        # Caso directorio
+        to_jpg(folder_selected, type)
+        jpg_folder = os.path.join(folder_selected, "jpg")
+        files = [os.path.join(jpg_folder, f) for f in os.listdir(jpg_folder)
+                 if f.lower().endswith(('png', 'jpg', 'jpeg', 'tiff', 'bmp'))]
+        # La carpeta de salida debe estar en el directorio seleccionado, no dentro de la carpeta jpg
+        output_folder = os.path.join(folder_selected, "watermark")
     
     if not files:
-        from tkinter import messagebox
         messagebox.showerror("Error", "No se encontraron imágenes en la carpeta seleccionada.")
         return
 
-    output_folder = os.path.join(folder_selected, "watermark")
     os.makedirs(output_folder, exist_ok=True)
     total_files = len(files)
 
@@ -93,6 +109,7 @@ def process_images(folder_selected, progress_window, progress_label, progress_va
         progress_window.after(100)
 
     def worker(i, file):
+        from modules.processing import process_image
         process_image(file, output_folder, watermark_pos, watermark)
         update_progress(i)
 
@@ -101,9 +118,15 @@ def process_images(folder_selected, progress_window, progress_label, progress_va
         futures = {executor.submit(worker, i, file): i for i, file in enumerate(files)}
         for future in futures:
             future.result()
-    
+
     progress_window.quit()
     # Eliminar carpeta jpg
     for file in files:
-        os.remove(file)
-    os.rmdir(jpg_folder)
+        try:
+            os.remove(file)
+        except Exception as e:
+            print(f"Error al eliminar {file}: {e}")
+    try:
+        shutil.rmtree(jpg_folder)
+    except Exception as e:
+        print(f"Error al eliminar la carpeta {jpg_folder}: {e}")
