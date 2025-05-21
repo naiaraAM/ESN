@@ -263,11 +263,11 @@ def init_main_screen(root, main_frame, watermark_container):
     footer_label.pack(side="bottom", pady=(20, 0))
 
 def create_main_window():
-    ctk.set_appearance_mode("Light")  # o "Dark"
+    ctk.set_appearance_mode("Light")
     ctk.set_default_color_theme("blue")
     
     root = ctk.CTk()
-    root.title("Marca de Agua")
+    root.title("dESNmarca")
     
     width = 420
     height = 300
